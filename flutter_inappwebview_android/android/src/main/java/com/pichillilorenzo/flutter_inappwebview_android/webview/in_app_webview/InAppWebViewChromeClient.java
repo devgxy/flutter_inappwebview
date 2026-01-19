@@ -870,25 +870,28 @@ public class InAppWebViewChromeClient extends WebChromeClient implements PluginR
               onShowFileChooserResult(paths);
               return false; // prevent default picker
             }
-            return true;
+            // 如果用户没有选择，则直接返回，不打开系统选择
+            return false; // 防止打开系统选择器
           }
-          return true;
+          // 非 List 类型的情况也不打开选择器
+          return false;
         }
 
         @Override
         public void defaultBehaviour(@Nullable Object handledByClient) {
-          startPickerIntent(filePathCallback, finalAcceptTypes, finalAllowMultiple, finalCaptureEnabled);
+          // 只有在Flutter侧明确未处理并需要系统默认时才会调用
+          // 但这里要求未选择时不再自动打开
+          // 所以该处无需实现
         }
 
         @Override
         public void error(String errorCode, @Nullable String errorMessage, @Nullable Object errorDetails) {
           Log.e(LOG_TAG, errorCode + ", " + ((errorMessage != null) ? errorMessage : ""));
-          defaultBehaviour(null);
+          // 发生错误时同样不打开系统选择器，直接返回
         }
       });
 
-        return true;
-      }
+      return true;
     }
     System.out.println("return startPickerIntent " + Arrays.toString(acceptTypes) + " " + allowMultiple + " " + captureEnabled);
     // 不是拍照的时候，acceptTypes传"application/pdf", "audio/*"
