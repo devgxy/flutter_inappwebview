@@ -249,6 +249,9 @@ class InAppWebView extends StatefulWidget {
     Future<PermissionResponse?> Function(InAppWebViewController controller,
             PermissionRequest permissionRequest)?
         onPermissionRequest,
+    Future<Object> Function(InAppWebViewController controller,
+            List<String>? acceptTypes, bool allowMultiple, bool captureEnabled)?
+        androidOnShowFileChooser,
     void Function(InAppWebViewController controller, Uint8List icon)?
         onReceivedIcon,
     void Function(InAppWebViewController controller, LoginRequest loginRequest)?
@@ -489,6 +492,12 @@ class InAppWebView extends StatefulWidget {
                   ? (controller, permissionRequest) =>
                       onPermissionRequest.call(controller, permissionRequest)
                   : null,
+              onShowFileChooser: androidOnShowFileChooser != null
+                  ? (controller, acceptTypes, allowMultiple, captureEnabled) =>
+                      androidOnShowFileChooser.call(controller, acceptTypes,
+                          allowMultiple, captureEnabled)
+                  : null,
+
               androidOnGeolocationPermissionsShowPrompt:
                   androidOnGeolocationPermissionsShowPrompt != null
                       ? (controller, origin) =>

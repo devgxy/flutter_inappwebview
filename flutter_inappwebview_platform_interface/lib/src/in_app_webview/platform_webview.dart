@@ -693,6 +693,24 @@ class PlatformWebViewCreationParams<T> {
   final Future<PermissionResponse?> Function(
       T controller, PermissionRequest permissionRequest)? onPermissionRequest;
 
+  ///{@template flutter_inappwebview_platform_interface.PlatformWebViewCreationParams.onShowFileChooser}
+  ///Event fired when the WebView requests to show a file chooser.
+  ///
+  ///[acceptTypes] represents the requested MIME types.
+  ///
+  ///[allowMultiple] indicates whether multiple file selection is allowed.
+  ///
+  ///[captureEnabled] indicates whether capture is enabled for media selection.
+  ///
+  ///Return `bool` to indicate whether the client handled the selection.
+  ///Return `List<String>` to provide selected file paths directly.
+  ///
+  ///**Officially Supported Platforms/Implementations**:
+  ///- Android native WebView ([Official API - WebChromeClient.onShowFileChooser](https://developer.android.com/reference/android/webkit/WebChromeClient#onShowFileChooser(android.webkit.WebView,%20android.webkit.ValueCallback%3Candroid.net.Uri%5B%5D%3E,%20android.webkit.WebChromeClient.FileChooserParams)))
+  ///{@endtemplate}
+  final Future<Object?> Function(T controller, List<String>? acceptTypes,
+      bool allowMultiple, bool captureEnabled)? onShowFileChooser;
+
   ///Use [onGeolocationPermissionsShowPrompt] instead.
   @Deprecated("Use onGeolocationPermissionsShowPrompt instead")
   final Future<GeolocationPermissionShowPromptResponse?> Function(
@@ -1209,6 +1227,7 @@ class PlatformWebViewCreationParams<T> {
       @Deprecated('Use onPermissionRequest instead')
       this.androidOnPermissionRequest,
       this.onPermissionRequest,
+      this.onShowFileChooser,
       @Deprecated('Use onGeolocationPermissionsShowPrompt instead')
       this.androidOnGeolocationPermissionsShowPrompt,
       this.onGeolocationPermissionsShowPrompt,

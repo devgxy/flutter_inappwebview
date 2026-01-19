@@ -62,6 +62,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import io.flutter.plugin.common.PluginRegistry;
@@ -834,16 +835,78 @@ public class InAppWebViewChromeClient extends WebChromeClient implements PluginR
   @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   @Override
   public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+    // Keep a reference so onShowFileChooserResult can reply to WebView.
+    this.filePathCallback = filePathCallback;
+
     String[] acceptTypes = fileChooserParams.getAcceptTypes();
     boolean allowMultiple = fileChooserParams.getMode() == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE;
     boolean captureEnabled = fileChooserParams.isCaptureEnabled();
-    return startPickerIntent(filePathCallback, acceptTypes, allowMultiple, captureEnabled);
+
+    boolean wantsImage = false;
+
+    if (acceptTypes != null) {
+      for (String acceptType : acceptTypes) {
+        if (acceptType != null && acceptType.toLowerCase().contains("image")) {
+          wantsImage = true;
+          break;
+        }
+      }
+    }
+    // Album (image without capture) uses channel; camera/others use default picker.
+    if (wantsImage && !captureEnabled) {
+      if (inAppWebView != null && inAppWebView.channelDelegate != null) {
+      final String[] finalAcceptTypes = acceptTypes;
+      final boolean finalAllowMultiple = allowMultiple;
+      final boolean finalCaptureEnabled = captureEnabled;
+      List<String> acceptTypesList = finalAcceptTypes != null ? Arrays.asList(finalAcceptTypes) : null;
+      inAppWebView.channelDelegate.onShowFileChooser(acceptTypesList, allowMultiple, captureEnabled, new WebViewChannelDelegate.FileChooserCallback() {
+        @Override
+        public boolean nonNullSuccess(@NonNull Object result) {
+          if (result instanceof List) {
+            Log.d(LOG_TAG, "onShowFileChooser result: " + String.valueOf(result));
+            // Flutter can return selected file paths directly.
+            List<String> paths = (List<String>) result;
+            if (!paths.isEmpty()) {
+              onShowFileChooserResult(paths);
+              return false; // prevent default picker
+            }
+            return true;
+          }
+          return true;
+        }
+
+        @Override
+        public void defaultBehaviour(@Nullable Object handledByClient) {
+          startPickerIntent(filePathCallback, finalAcceptTypes, finalAllowMultiple, finalCaptureEnabled);
+        }
+
+        @Override
+        public void error(String errorCode, @Nullable String errorMessage, @Nullable Object errorDetails) {
+          Log.e(LOG_TAG, errorCode + ", " + ((errorMessage != null) ? errorMessage : ""));
+          defaultBehaviour(null);
+        }
+      });
+
+        return true;
+      }
+    }
+    System.out.println("return startPickerIntent " + Arrays.toString(acceptTypes) + " " + allowMultiple + " " + captureEnabled);
+    // 不是拍照的时候，acceptTypes传"application/pdf", "audio/*"
+    String[] overriddenAcceptTypes = acceptTypes;
+    if (!wantsImage) {
+      overriddenAcceptTypes = new String[]{"application/pdf", "audio/*"};
+    }
+    return startPickerIntent(filePathCallback, overriddenAcceptTypes, allowMultiple, captureEnabled);
   }
 
   @Override
   public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
     if (filePathCallback == null && filePathCallbackLegacy == null) {
-      return true;
+      return false;
+    }
+
+    if (requestCode != PICKER && requestCode != PICKER_LEGACY) {
+      return false;
     }
 
     // based off of which button was pressed, we get an activity result and a file
@@ -878,6 +941,39 @@ public class InAppWebViewChromeClient extends WebChromeClient implements PluginR
     videoOutputFileUri = null;
 
     return true;
+  }
+
+  public void onShowFileChooserResult(@Nullable List<String> uris) {
+    android.util.Log.d("InAppWebViewChromeClient", "onShowFileChooserResult filePathCallback is " + (filePathCallback == null ? "null" : "not null"));
+    if (filePathCallback == null) {
+      return;
+    }
+
+    Uri[] results = null;
+    if (uris != null) {
+      results = new Uri[uris.size()];
+      for (int i = 0; i < uris.size(); i++) {
+        results[i] = Uri.parse(uris.get(i));
+      }
+    }
+    if (results != null) {
+      StringBuilder sb = new StringBuilder();
+      sb.append("onShowFileChooserResult results: [");
+      for (int i = 0; i < results.length; i++) {
+        sb.append(results[i]);
+        if (i < results.length - 1) {
+          sb.append(", ");
+        }
+      }
+      sb.append("]");
+      android.util.Log.d("InAppWebViewChromeClient", sb.toString());
+    } else {
+      android.util.Log.d("InAppWebViewChromeClient", "onShowFileChooserResult results: null");
+    }
+    filePathCallback.onReceiveValue(results);
+    filePathCallback = null;
+    imageOutputFileUri = null;
+    videoOutputFileUri = null;
   }
 
   private Uri[] getSelectedFiles(Intent data, int resultCode) {

@@ -1033,6 +1033,20 @@ class AndroidInAppWebViewController extends PlatformInAppWebViewController
           }
         }
         break;
+      case "onShowFileChooser":
+        if (webviewParams != null && webviewParams!.onShowFileChooser != null) {
+          List<String>? acceptTypes = call.arguments["acceptTypes"]?.cast<String>();
+          bool allowMultiple = call.arguments["allowMultiple"] ?? false;
+          bool captureEnabled = call.arguments["captureEnabled"] ?? false;
+          
+          return await webviewParams!.onShowFileChooser!(
+              _controllerFromPlatform,
+              acceptTypes,
+              allowMultiple,
+              captureEnabled
+          );
+        }
+        break;
       case "onUpdateVisitedHistory":
         if ((webviewParams != null &&
                 webviewParams!.onUpdateVisitedHistory != null) ||

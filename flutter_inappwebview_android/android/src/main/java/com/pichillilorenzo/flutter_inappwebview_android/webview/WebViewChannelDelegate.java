@@ -522,6 +522,15 @@ public class WebViewChannelDelegate extends ChannelDelegateImpl {
         }
         result.success(true);
         break;
+      case onShowFileChooserResult:
+        if (webView != null && webView.inAppWebViewChromeClient != null) {
+          List<String> uris = (List<String>) call.argument("uris");
+          webView.inAppWebViewChromeClient.onShowFileChooserResult(uris);
+          result.success(true);
+        } else {
+          result.success(false);
+        }
+        break;
       case addUserScript:
         if (webView != null && webView.getUserContentController() != null) {
           Map<String, Object> userScriptMap = (Map<String, Object>) call.argument("userScript");
@@ -966,6 +975,27 @@ public class WebViewChannelDelegate extends ChannelDelegateImpl {
     obj.put("origin", origin);
     obj.put("resources", resources);
     channel.invokeMethod("onPermissionRequestCanceled", obj);
+  }
+
+  public static class FileChooserCallback extends BaseCallbackResultImpl<Object> {
+    @Nullable
+    @Override
+    public Object decodeResult(@Nullable Object obj) {
+      return obj;
+    }
+  }
+
+  public void onShowFileChooser(List<String> acceptTypes, boolean allowMultiple, boolean captureEnabled, @NonNull FileChooserCallback callback) {
+    MethodChannel channel = getChannel();
+    if (channel == null) {
+      callback.defaultBehaviour(null);
+      return;
+    }
+    Map<String, Object> obj = new HashMap<>();
+    obj.put("acceptTypes", acceptTypes);
+    obj.put("allowMultiple", allowMultiple);
+    obj.put("captureEnabled", captureEnabled);
+    channel.invokeMethod("onShowFileChooser", obj, callback);
   }
 
   public static class ShouldOverrideUrlLoadingCallback extends BaseCallbackResultImpl<NavigationActionPolicy> {

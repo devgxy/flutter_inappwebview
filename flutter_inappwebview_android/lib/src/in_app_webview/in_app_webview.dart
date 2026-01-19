@@ -76,6 +76,7 @@ class AndroidInAppWebViewWidgetCreationParams
       @Deprecated('Use onPermissionRequest instead')
       super.androidOnPermissionRequest,
       super.onPermissionRequest,
+      super.onShowFileChooser,
       @Deprecated('Use onGeolocationPermissionsShowPrompt instead')
       super.androidOnGeolocationPermissionsShowPrompt,
       super.onGeolocationPermissionsShowPrompt,
@@ -196,6 +197,7 @@ class AndroidInAppWebViewWidgetCreationParams
             onSafeBrowsingHit: params.onSafeBrowsingHit,
             androidOnPermissionRequest: params.androidOnPermissionRequest,
             onPermissionRequest: params.onPermissionRequest,
+            onShowFileChooser: params.onShowFileChooser,
             androidOnGeolocationPermissionsShowPrompt:
                 params.androidOnGeolocationPermissionsShowPrompt,
             onGeolocationPermissionsShowPrompt:

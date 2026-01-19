@@ -70,6 +70,7 @@ public enum WebViewChannelDelegateMethods {
   getScrollY,
   getCertificate,
   clearHistory,
+  onShowFileChooserResult,
   addUserScript,
   removeUserScript,
   removeUserScriptsByGroupName,
