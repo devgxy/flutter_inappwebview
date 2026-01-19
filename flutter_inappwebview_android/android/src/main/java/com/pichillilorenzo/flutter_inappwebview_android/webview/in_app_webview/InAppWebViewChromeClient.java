@@ -870,11 +870,12 @@ public class InAppWebViewChromeClient extends WebChromeClient implements PluginR
               onShowFileChooserResult(paths);
               return false; // prevent default picker
             }
-            // 如果用户没有选择，则直接返回，不打开系统选择
-            return false; // 防止打开系统选择器
+            // 用户未选择：通知 WebView 取消，避免后续卡死
+            onShowFileChooserResult(null);
+            return false;
           }
-          // 非 List 类型的情况也不打开选择器
-          return false;
+          // 非 List 类型：交给默认行为处理
+          return true;
         }
 
         @Override
@@ -887,11 +888,13 @@ public class InAppWebViewChromeClient extends WebChromeClient implements PluginR
         @Override
         public void error(String errorCode, @Nullable String errorMessage, @Nullable Object errorDetails) {
           Log.e(LOG_TAG, errorCode + ", " + ((errorMessage != null) ? errorMessage : ""));
-          // 发生错误时同样不打开系统选择器，直接返回
+          // 发生错误时通知 WebView 取消，避免后续卡死
+          onShowFileChooserResult(null);
         }
       });
 
       return true;
+      }
     }
     System.out.println("return startPickerIntent " + Arrays.toString(acceptTypes) + " " + allowMultiple + " " + captureEnabled);
     // 不是拍照的时候，acceptTypes传"application/pdf", "audio/*"
