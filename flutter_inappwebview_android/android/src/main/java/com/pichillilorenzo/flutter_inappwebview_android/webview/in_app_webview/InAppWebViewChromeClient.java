@@ -852,8 +852,9 @@ public class InAppWebViewChromeClient extends WebChromeClient implements PluginR
         }
       }
     }
+    final boolean finalWantsImage = wantsImage;
     // Album (image without capture) uses channel; camera/others use default picker.
-    if (wantsImage && !captureEnabled) {
+//    if (wantsImage && !captureEnabled) {
       if (inAppWebView != null && inAppWebView.channelDelegate != null) {
       final String[] finalAcceptTypes = acceptTypes;
       final boolean finalAllowMultiple = allowMultiple;
@@ -862,27 +863,44 @@ public class InAppWebViewChromeClient extends WebChromeClient implements PluginR
       inAppWebView.channelDelegate.onShowFileChooser(acceptTypesList, allowMultiple, captureEnabled, new WebViewChannelDelegate.FileChooserCallback() {
         @Override
         public boolean nonNullSuccess(@NonNull Object result) {
-          if (result instanceof List) {
-            Log.d(LOG_TAG, "onShowFileChooser result: " + String.valueOf(result));
-            // Flutter can return selected file paths directly.
-            List<String> paths = (List<String>) result;
-            if (!paths.isEmpty()) {
-              onShowFileChooserResult(paths);
-              return false; // prevent default picker
+            if (finalWantsImage && !finalCaptureEnabled) {
+                if (result instanceof List) {
+                    Log.d(LOG_TAG, "onShowFileChooser result: " + String.valueOf(result));
+                    // Flutter can return selected file paths directly.
+                    List<String> paths = (List<String>) result;
+                    if (!paths.isEmpty()) {
+                        onShowFileChooserResult(paths);
+                        return false; // prevent default picker
+                    }
+                    // 用户未选择：通知 WebView 取消，避免后续卡死
+                    onShowFileChooserResult(null);
+                    return false;
+                }
+            } else {
+                if (result instanceof Boolean) {
+                    boolean permissionOK = ((Boolean) result).booleanValue();
+                    if (permissionOK) {
+                        String[] overriddenAcceptTypes = (finalAcceptTypes != null) ? finalAcceptTypes : new String[0];
+                        if (!finalWantsImage) {
+                            overriddenAcceptTypes = new String[]{"application/pdf", "audio/*"};
+                        }
+                        startPickerIntent(filePathCallback, overriddenAcceptTypes, finalAllowMultiple, finalCaptureEnabled);
+                        return false; // 已处理，不再触发 defaultBehaviour
+                    } else {
+                        onShowFileChooserResult(null);
+                        return false;
+                    }
+                }
             }
-            // 用户未选择：通知 WebView 取消，避免后续卡死
-            onShowFileChooserResult(null);
-            return false;
-          }
-          // 非 List 类型：交给默认行为处理
+          // 非 List 和 boolean 类型：交给默认行为处理
           return true;
         }
 
         @Override
         public void defaultBehaviour(@Nullable Object handledByClient) {
-          // 只有在Flutter侧明确未处理并需要系统默认时才会调用
-          // 但这里要求未选择时不再自动打开
-          // 所以该处无需实现
+          // Flutter 返回 null 或未识别的类型时，使用系统默认选择器（相册/文件/相机）
+          String[] at = (finalAcceptTypes != null) ? finalAcceptTypes : new String[0];
+          startPickerIntent(filePathCallback, at, finalAllowMultiple, finalCaptureEnabled);
         }
 
         @Override
@@ -895,14 +913,10 @@ public class InAppWebViewChromeClient extends WebChromeClient implements PluginR
 
       return true;
       }
-    }
-    System.out.println("return startPickerIntent " + Arrays.toString(acceptTypes) + " " + allowMultiple + " " + captureEnabled);
-    // 不是拍照的时候，acceptTypes传"application/pdf", "audio/*"
-    String[] overriddenAcceptTypes = acceptTypes;
-    if (!wantsImage) {
-      overriddenAcceptTypes = new String[]{"application/pdf", "audio/*"};
-    }
-    return startPickerIntent(filePathCallback, overriddenAcceptTypes, allowMultiple, captureEnabled);
+//    }
+    // 无 Flutter 桥或 channel 时，直接使用原生选择器；acceptTypes 可能为 null
+    String[] at = (acceptTypes != null) ? acceptTypes : new String[0];
+    return startPickerIntent(filePathCallback, at, allowMultiple, captureEnabled);
   }
 
   @Override
