@@ -22,8 +22,8 @@ dependencies:
     sdk: flutter
   flutter_inappwebview_platform_interface:
   git:
-    url: https://github.com/houjz818/flutter_inappwebview.git
-    ref: feature/hojo_plugin
+    url: https://github.com/gxydev/flutter_inappwebview.git
+    ref: master/hojo_plugin
     path: flutter_inappwebview_platform_interface
 
 dev_dependencies:
